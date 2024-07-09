@@ -15,6 +15,10 @@ export class Commit<BranchMetadata, CommitMetadata, VersionControlledTables> {
     >,
   ) {}
 
+  get id() {
+    return this.commitId;
+  }
+
   async insert<TableName extends keyof VersionControlledTables & string>(
     tableName: TableName,
     values: VersionControlledTables[TableName],

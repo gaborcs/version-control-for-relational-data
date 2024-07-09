@@ -134,11 +134,13 @@ describe("Commit", () => {
     it("should store inserted rows as valid from the current commit on the given branch", async () => {
       const branchId = await db.createBranch({ name: "main" });
 
-      await db.executeWriteTransaction(async (tx) => {
+      const commitId = await db.executeWriteTransaction(async (tx) => {
         const commit = await tx.createCommit(branchId, { author: "Alice" });
         await commit.insert("variable", { name: "Insulin resistance" });
+        return commit.id;
       });
 
+      expect(commitId).toEqual(expect.any(Number));
       const variable = await kysely
         .selectFrom("variable")
         .selectAll()
@@ -146,7 +148,7 @@ describe("Commit", () => {
       expect(variable).toMatchObject({
         name: "Insulin resistance",
         branch_id: branchId,
-        valid_from: 1,
+        valid_from: commitId,
         valid_until: null,
       });
     });
