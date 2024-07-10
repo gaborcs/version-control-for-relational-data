@@ -233,4 +233,37 @@ describe("Commit", () => {
       });
     });
   });
+
+  describe("delete", () => {
+    it("should mark the row as invalid from the current commit", async () => {
+      const branchId = await db.createBranch({ name: "main" });
+      const { variableId, commitId: previousCommit } =
+        await db.executeWriteTransaction(async (tx) => {
+          const commit = await tx.createCommit(branchId, { author: "Alice" });
+          const variableId = await commit.insert("variable", {
+            name: "Insulin resistance",
+          });
+          return { variableId, commitId: commit.id };
+        });
+
+      const commitId = await db.executeWriteTransaction(async (tx) => {
+        const commit = await tx.createCommit(branchId, { author: "Alice" });
+        await commit.delete("variable", variableId);
+        return commit.id;
+      });
+
+      const variable = await kysely
+        .selectFrom("variable")
+        .where("valid_until", "=", commitId)
+        .selectAll()
+        .executeTakeFirstOrThrow();
+      expect(variable).toEqual({
+        id: variableId,
+        name: "Insulin resistance",
+        branch_id: branchId,
+        valid_from: previousCommit,
+        valid_until: commitId,
+      });
+    });
+  });
 });

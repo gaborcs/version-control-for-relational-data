@@ -66,4 +66,22 @@ export class Commit<BranchMetadata, CommitMetadata, VersionControlledTables> {
       })
       .execute();
   }
+
+  async delete<TableName extends keyof VersionControlledTables & string>(
+    tableName: TableName,
+    id: string,
+  ) {
+    const updatedRows = await this.tx
+      .updateTable(tableName)
+      // @ts-ignore: Kysely doesn't work great with generics
+      .where("id", "=", id)
+      // @ts-ignore: Kysely doesn't work great with generics
+      .where("branch_id", "=", this.branchId)
+      .where("valid_until", "is", null)
+      // @ts-ignore: Kysely doesn't work great with generics
+      .set({ valid_until: this.commitId })
+      .returningAll()
+      .execute();
+    assert(updatedRows.length === 1, "Expected to update exactly one row");
+  }
 }
