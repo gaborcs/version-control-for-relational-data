@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "formatter": {
-    "useEditorconfig": true
+    "indentStyle": "space"
   },
   "organizeImports": {
     "enabled": true
