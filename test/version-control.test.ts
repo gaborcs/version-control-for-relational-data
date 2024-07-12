@@ -113,6 +113,10 @@ describe("VersionControlledDb", () => {
   testSelectAsOf(function executeSelectAsOf(options) {
     return db.selectAsOf(options).selectAll().execute();
   });
+
+  testSelectLatest(function executeSelectLatest(options) {
+    return db.selectLatest(options).selectAll().execute();
+  });
 });
 
 describe("WriteTransaction", () => {
@@ -135,6 +139,12 @@ describe("WriteTransaction", () => {
   testSelectAsOf(function executeSelectAsOf(options) {
     return db.executeWriteTransaction(async (tx) => {
       return tx.selectAsOf(options).selectAll().execute();
+    });
+  });
+
+  testSelectLatest(function executeSelectLatest(options) {
+    return db.executeWriteTransaction(async (tx) => {
+      return tx.selectLatest(options).selectAll().execute();
     });
   });
 });
@@ -422,6 +432,78 @@ function testSelectAsOf(
         tableName: "variable",
         branchId: 1,
         commitId: 3,
+      });
+
+      expect(variables).toMatchObject([]);
+    });
+  });
+}
+
+function testSelectLatest(
+  executeSelectLatest: <
+    TableName extends keyof VersionControlledTables,
+  >(options: { tableName: TableName; branchId: number }) => Promise<unknown>,
+) {
+  describe("selectLatest", () => {
+    it("should return rows that are still valid", async () => {
+      await kysely
+        .insertInto("variable")
+        .values([
+          {
+            id: "1",
+            name: "Obesity",
+            branch_id: 1,
+            valid_from: 1,
+          },
+        ])
+        .execute();
+
+      const variables = await executeSelectLatest({
+        tableName: "variable",
+        branchId: 1,
+      });
+
+      expect(variables).toMatchObject([{ id: "1" }]);
+    });
+
+    it("should not return rows that are not valid anymore", async () => {
+      await kysely
+        .insertInto("variable")
+        .values([
+          {
+            id: "1",
+            name: "Obesity",
+            branch_id: 1,
+            valid_from: 1,
+            valid_until: 2,
+          },
+        ])
+        .execute();
+
+      const variables = await executeSelectLatest({
+        tableName: "variable",
+        branchId: 1,
+      });
+
+      expect(variables).toMatchObject([]);
+    });
+
+    it("should not return rows that are valid on a different branch", async () => {
+      await kysely
+        .insertInto("variable")
+        .values([
+          {
+            id: "1",
+            name: "Obesity",
+            branch_id: 1,
+            valid_from: 1,
+          },
+        ])
+        .execute();
+
+      const variables = await executeSelectLatest({
+        tableName: "variable",
+        branchId: 2,
       });
 
       expect(variables).toMatchObject([]);

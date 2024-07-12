@@ -2,6 +2,7 @@ import type { Transaction } from "kysely";
 import { Commit } from "./Commit";
 import type { VersionControlledSchema } from "./VersionControlledSchema";
 import { createSelectAsOf } from "./createSelectAsOf";
+import { createSelectLatest } from "./createSelectLatest";
 
 export class WriteTransaction<
   BranchMetadata,
@@ -31,5 +32,9 @@ export class WriteTransaction<
 
   get selectAsOf() {
     return createSelectAsOf(this.tx);
+  }
+
+  get selectLatest() {
+    return createSelectLatest(this.tx);
   }
 }

@@ -2,6 +2,7 @@ import type { Kysely } from "kysely";
 import type { VersionControlledSchema } from "./VersionControlledSchema";
 import { WriteTransaction } from "./WriteTransaction";
 import { createSelectAsOf } from "./createSelectAsOf";
+import { createSelectLatest } from "./createSelectLatest";
 
 export class VersionControlledDb<
   BranchMetadata,
@@ -57,5 +58,9 @@ export class VersionControlledDb<
 
   get selectAsOf() {
     return createSelectAsOf(this.db);
+  }
+
+  get selectLatest() {
+    return createSelectLatest(this.db);
   }
 }
