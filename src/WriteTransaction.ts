@@ -1,6 +1,7 @@
 import type { Transaction } from "kysely";
 import { Commit } from "./Commit";
 import type { VersionControlledSchema } from "./VersionControlledSchema";
+import { createSelectAsOf } from "./createSelectAsOf";
 
 export class WriteTransaction<
   BranchMetadata,
@@ -26,5 +27,9 @@ export class WriteTransaction<
       .executeTakeFirstOrThrow();
     const { id: commitId } = result as { id: number };
     return new Commit(branchId, commitId, this.tx);
+  }
+
+  get selectAsOf() {
+    return createSelectAsOf(this.tx);
   }
 }

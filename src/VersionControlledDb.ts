@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 import type { VersionControlledSchema } from "./VersionControlledSchema";
 import { WriteTransaction } from "./WriteTransaction";
+import { createSelectAsOf } from "./createSelectAsOf";
 
 export class VersionControlledDb<
   BranchMetadata,
@@ -39,7 +40,7 @@ export class VersionControlledDb<
     );
   }
 
-  async executeWriteTransaction<T>(
+  executeWriteTransaction<T>(
     fn: (
       tx: WriteTransaction<
         BranchMetadata,
@@ -52,5 +53,9 @@ export class VersionControlledDb<
       .transaction()
       .setIsolationLevel("serializable")
       .execute((tx) => fn(new WriteTransaction(tx)));
+  }
+
+  get selectAsOf() {
+    return createSelectAsOf(this.db);
   }
 }

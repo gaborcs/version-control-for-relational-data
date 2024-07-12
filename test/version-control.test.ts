@@ -109,6 +109,10 @@ describe("VersionControlledDb", () => {
       expect(returnValue).toBe(42);
     });
   });
+
+  testSelectAsOf(function executeSelectAsOf(options) {
+    return db.selectAsOf(options).selectAll().execute();
+  });
 });
 
 describe("WriteTransaction", () => {
@@ -125,6 +129,12 @@ describe("WriteTransaction", () => {
         .selectAll()
         .executeTakeFirstOrThrow();
       expect(commit.author).toBe("Alice");
+    });
+  });
+
+  testSelectAsOf(function executeSelectAsOf(options) {
+    return db.executeWriteTransaction(async (tx) => {
+      return tx.selectAsOf(options).selectAll().execute();
     });
   });
 });
@@ -267,3 +277,154 @@ describe("Commit", () => {
     });
   });
 });
+
+function testSelectAsOf(
+  executeSelectAsOf: <
+    TableName extends keyof VersionControlledTables,
+  >(options: {
+    tableName: TableName;
+    branchId: number;
+    commitId: number;
+  }) => Promise<unknown>,
+) {
+  describe("selectAsOf", () => {
+    it("should return rows that were introduced in the specified commit", async () => {
+      await kysely
+        .insertInto("variable")
+        .values([
+          {
+            id: "1",
+            name: "Obesity",
+            branch_id: 1,
+            valid_from: 1,
+          },
+          {
+            id: "2",
+            name: "Diabetes",
+            branch_id: 1,
+            valid_from: 1,
+            valid_until: 3,
+          },
+        ])
+        .execute();
+
+      const variables = await executeSelectAsOf({
+        tableName: "variable",
+        branchId: 1,
+        commitId: 1,
+      });
+
+      expect(variables).toMatchObject([{ id: "1" }, { id: "2" }]);
+    });
+
+    it("should return rows that were introduced before the specified commit and not invalidated by the specified commit", async () => {
+      await kysely
+        .insertInto("variable")
+        .values([
+          {
+            id: "1",
+            name: "Obesity",
+            branch_id: 1,
+            valid_from: 1,
+          },
+          {
+            id: "2",
+            name: "Diabetes",
+            branch_id: 1,
+            valid_from: 1,
+            valid_until: 3,
+          },
+        ])
+        .execute();
+
+      const variables = await executeSelectAsOf({
+        tableName: "variable",
+        branchId: 1,
+        commitId: 2,
+      });
+
+      expect(variables).toMatchObject([{ id: "1" }, { id: "2" }]);
+    });
+
+    it("should not return rows that were introduced on a different branch", async () => {
+      await kysely
+        .insertInto("variable")
+        .values([
+          {
+            id: "1",
+            name: "Obesity",
+            branch_id: 1,
+            valid_from: 1,
+          },
+        ])
+        .execute();
+
+      const variables = await executeSelectAsOf({
+        tableName: "variable",
+        branchId: 2,
+        commitId: 1,
+      });
+
+      expect(variables).toMatchObject([]);
+    });
+
+    it("should not return rows that were introduced after the specified commit", async () => {
+      await kysely
+        .insertInto("variable")
+        .values([
+          {
+            id: "1",
+            name: "Obesity",
+            branch_id: 1,
+            valid_from: 2,
+          },
+          {
+            id: "2",
+            name: "Diabetes",
+            branch_id: 1,
+            valid_from: 2,
+            valid_until: 3,
+          },
+        ])
+        .execute();
+
+      const variables = await executeSelectAsOf({
+        tableName: "variable",
+        branchId: 1,
+        commitId: 1,
+      });
+
+      expect(variables).toMatchObject([]);
+    });
+
+    it("should not return rows that were removed by the specified commit", async () => {
+      await kysely
+        .insertInto("variable")
+        .values([
+          {
+            id: "1",
+            name: "Obesity",
+            branch_id: 1,
+            valid_from: 1,
+            valid_until: 2,
+          },
+          {
+            id: "2",
+            name: "Diabetes",
+            branch_id: 1,
+            valid_from: 1,
+            valid_until: 3,
+          },
+        ])
+        .execute();
+
+      const variables = await executeSelectAsOf({
+        tableName: "variable",
+        branchId: 1,
+        commitId: 3,
+      });
+
+      expect(variables).toMatchObject([]);
+    });
+  });
+}
