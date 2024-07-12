@@ -14,7 +14,7 @@ export function createSelectLatest<
     >
   >,
 ) {
-  return function selectAsOf<
+  return function selectLatest<
     TableName extends keyof VersionControlledTables & string,
   >(options: {
     tableName: TableName;
