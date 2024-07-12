@@ -110,12 +110,16 @@ describe("VersionControlledDb", () => {
     });
   });
 
-  testSelectAsOf(function executeSelectAsOf(options) {
-    return db.selectAsOf(options).selectAll().execute();
+  describe("selectAsOf", () => {
+    testSelectAsOf(function executeSelectAsOf(options) {
+      return db.selectAsOf(options).selectAll().execute();
+    });
   });
 
-  testSelectLatest(function executeSelectLatest(options) {
-    return db.selectLatest(options).selectAll().execute();
+  describe("selectLatest", () => {
+    testSelectLatest(function executeSelectLatest(options) {
+      return db.selectLatest(options).selectAll().execute();
+    });
   });
 });
 
@@ -136,15 +140,19 @@ describe("WriteTransaction", () => {
     });
   });
 
-  testSelectAsOf(function executeSelectAsOf(options) {
-    return db.executeWriteTransaction(async (tx) => {
-      return tx.selectAsOf(options).selectAll().execute();
+  describe("selectAsOf", () => {
+    testSelectAsOf(function executeSelectAsOf(options) {
+      return db.executeWriteTransaction(async (tx) => {
+        return tx.selectAsOf(options).selectAll().execute();
+      });
     });
   });
 
-  testSelectLatest(function executeSelectLatest(options) {
-    return db.executeWriteTransaction(async (tx) => {
-      return tx.selectLatest(options).selectAll().execute();
+  describe("selectLatest", () => {
+    testSelectLatest(function executeSelectLatest(options) {
+      return db.executeWriteTransaction(async (tx) => {
+        return tx.selectLatest(options).selectAll().execute();
+      });
     });
   });
 });
@@ -297,145 +305,143 @@ function testSelectAsOf(
     commitId: number;
   }) => Promise<unknown>,
 ) {
-  describe("selectAsOf", () => {
-    it("should return rows that were introduced in the specified commit", async () => {
-      await kysely
-        .insertInto("variable")
-        .values([
-          {
-            id: "1",
-            name: "Obesity",
-            branch_id: 1,
-            valid_from: 1,
-          },
-          {
-            id: "2",
-            name: "Diabetes",
-            branch_id: 1,
-            valid_from: 1,
-            valid_until: 3,
-          },
-        ])
-        .execute();
+  it("should return rows that were introduced in the specified commit", async () => {
+    await kysely
+      .insertInto("variable")
+      .values([
+        {
+          id: "1",
+          name: "Obesity",
+          branch_id: 1,
+          valid_from: 1,
+        },
+        {
+          id: "2",
+          name: "Diabetes",
+          branch_id: 1,
+          valid_from: 1,
+          valid_until: 3,
+        },
+      ])
+      .execute();
 
-      const variables = await executeSelectAsOf({
-        tableName: "variable",
-        branchId: 1,
-        commitId: 1,
-      });
-
-      expect(variables).toMatchObject([{ id: "1" }, { id: "2" }]);
+    const variables = await executeSelectAsOf({
+      tableName: "variable",
+      branchId: 1,
+      commitId: 1,
     });
 
-    it("should return rows that were introduced before the specified commit and not invalidated by the specified commit", async () => {
-      await kysely
-        .insertInto("variable")
-        .values([
-          {
-            id: "1",
-            name: "Obesity",
-            branch_id: 1,
-            valid_from: 1,
-          },
-          {
-            id: "2",
-            name: "Diabetes",
-            branch_id: 1,
-            valid_from: 1,
-            valid_until: 3,
-          },
-        ])
-        .execute();
+    expect(variables).toMatchObject([{ id: "1" }, { id: "2" }]);
+  });
 
-      const variables = await executeSelectAsOf({
-        tableName: "variable",
-        branchId: 1,
-        commitId: 2,
-      });
+  it("should return rows that were introduced before the specified commit and not invalidated by the specified commit", async () => {
+    await kysely
+      .insertInto("variable")
+      .values([
+        {
+          id: "1",
+          name: "Obesity",
+          branch_id: 1,
+          valid_from: 1,
+        },
+        {
+          id: "2",
+          name: "Diabetes",
+          branch_id: 1,
+          valid_from: 1,
+          valid_until: 3,
+        },
+      ])
+      .execute();
 
-      expect(variables).toMatchObject([{ id: "1" }, { id: "2" }]);
+    const variables = await executeSelectAsOf({
+      tableName: "variable",
+      branchId: 1,
+      commitId: 2,
     });
 
-    it("should not return rows that were introduced on a different branch", async () => {
-      await kysely
-        .insertInto("variable")
-        .values([
-          {
-            id: "1",
-            name: "Obesity",
-            branch_id: 1,
-            valid_from: 1,
-          },
-        ])
-        .execute();
+    expect(variables).toMatchObject([{ id: "1" }, { id: "2" }]);
+  });
 
-      const variables = await executeSelectAsOf({
-        tableName: "variable",
-        branchId: 2,
-        commitId: 1,
-      });
+  it("should not return rows that were introduced on a different branch", async () => {
+    await kysely
+      .insertInto("variable")
+      .values([
+        {
+          id: "1",
+          name: "Obesity",
+          branch_id: 1,
+          valid_from: 1,
+        },
+      ])
+      .execute();
 
-      expect(variables).toMatchObject([]);
+    const variables = await executeSelectAsOf({
+      tableName: "variable",
+      branchId: 2,
+      commitId: 1,
     });
 
-    it("should not return rows that were introduced after the specified commit", async () => {
-      await kysely
-        .insertInto("variable")
-        .values([
-          {
-            id: "1",
-            name: "Obesity",
-            branch_id: 1,
-            valid_from: 2,
-          },
-          {
-            id: "2",
-            name: "Diabetes",
-            branch_id: 1,
-            valid_from: 2,
-            valid_until: 3,
-          },
-        ])
-        .execute();
+    expect(variables).toMatchObject([]);
+  });
 
-      const variables = await executeSelectAsOf({
-        tableName: "variable",
-        branchId: 1,
-        commitId: 1,
-      });
+  it("should not return rows that were introduced after the specified commit", async () => {
+    await kysely
+      .insertInto("variable")
+      .values([
+        {
+          id: "1",
+          name: "Obesity",
+          branch_id: 1,
+          valid_from: 2,
+        },
+        {
+          id: "2",
+          name: "Diabetes",
+          branch_id: 1,
+          valid_from: 2,
+          valid_until: 3,
+        },
+      ])
+      .execute();
 
-      expect(variables).toMatchObject([]);
+    const variables = await executeSelectAsOf({
+      tableName: "variable",
+      branchId: 1,
+      commitId: 1,
     });
 
-    it("should not return rows that were removed by the specified commit", async () => {
-      await kysely
-        .insertInto("variable")
-        .values([
-          {
-            id: "1",
-            name: "Obesity",
-            branch_id: 1,
-            valid_from: 1,
-            valid_until: 2,
-          },
-          {
-            id: "2",
-            name: "Diabetes",
-            branch_id: 1,
-            valid_from: 1,
-            valid_until: 3,
-          },
-        ])
-        .execute();
+    expect(variables).toMatchObject([]);
+  });
 
-      const variables = await executeSelectAsOf({
-        tableName: "variable",
-        branchId: 1,
-        commitId: 3,
-      });
+  it("should not return rows that were removed by the specified commit", async () => {
+    await kysely
+      .insertInto("variable")
+      .values([
+        {
+          id: "1",
+          name: "Obesity",
+          branch_id: 1,
+          valid_from: 1,
+          valid_until: 2,
+        },
+        {
+          id: "2",
+          name: "Diabetes",
+          branch_id: 1,
+          valid_from: 1,
+          valid_until: 3,
+        },
+      ])
+      .execute();
 
-      expect(variables).toMatchObject([]);
+    const variables = await executeSelectAsOf({
+      tableName: "variable",
+      branchId: 1,
+      commitId: 3,
     });
+
+    expect(variables).toMatchObject([]);
   });
 }
 
@@ -444,69 +450,67 @@ function testSelectLatest(
     TableName extends keyof VersionControlledTables,
   >(options: { tableName: TableName; branchId: number }) => Promise<unknown>,
 ) {
-  describe("selectLatest", () => {
-    it("should return rows that are still valid", async () => {
-      await kysely
-        .insertInto("variable")
-        .values([
-          {
-            id: "1",
-            name: "Obesity",
-            branch_id: 1,
-            valid_from: 1,
-          },
-        ])
-        .execute();
+  it("should return rows that are still valid", async () => {
+    await kysely
+      .insertInto("variable")
+      .values([
+        {
+          id: "1",
+          name: "Obesity",
+          branch_id: 1,
+          valid_from: 1,
+        },
+      ])
+      .execute();
 
-      const variables = await executeSelectLatest({
-        tableName: "variable",
-        branchId: 1,
-      });
-
-      expect(variables).toMatchObject([{ id: "1" }]);
+    const variables = await executeSelectLatest({
+      tableName: "variable",
+      branchId: 1,
     });
 
-    it("should not return rows that are not valid anymore", async () => {
-      await kysely
-        .insertInto("variable")
-        .values([
-          {
-            id: "1",
-            name: "Obesity",
-            branch_id: 1,
-            valid_from: 1,
-            valid_until: 2,
-          },
-        ])
-        .execute();
+    expect(variables).toMatchObject([{ id: "1" }]);
+  });
 
-      const variables = await executeSelectLatest({
-        tableName: "variable",
-        branchId: 1,
-      });
+  it("should not return rows that are not valid anymore", async () => {
+    await kysely
+      .insertInto("variable")
+      .values([
+        {
+          id: "1",
+          name: "Obesity",
+          branch_id: 1,
+          valid_from: 1,
+          valid_until: 2,
+        },
+      ])
+      .execute();
 
-      expect(variables).toMatchObject([]);
+    const variables = await executeSelectLatest({
+      tableName: "variable",
+      branchId: 1,
     });
 
-    it("should not return rows that are valid on a different branch", async () => {
-      await kysely
-        .insertInto("variable")
-        .values([
-          {
-            id: "1",
-            name: "Obesity",
-            branch_id: 1,
-            valid_from: 1,
-          },
-        ])
-        .execute();
+    expect(variables).toMatchObject([]);
+  });
 
-      const variables = await executeSelectLatest({
-        tableName: "variable",
-        branchId: 2,
-      });
+  it("should not return rows that are valid on a different branch", async () => {
+    await kysely
+      .insertInto("variable")
+      .values([
+        {
+          id: "1",
+          name: "Obesity",
+          branch_id: 1,
+          valid_from: 1,
+        },
+      ])
+      .execute();
 
-      expect(variables).toMatchObject([]);
+    const variables = await executeSelectLatest({
+      tableName: "variable",
+      branchId: 2,
     });
+
+    expect(variables).toMatchObject([]);
   });
 }
